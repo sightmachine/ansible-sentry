@@ -14,8 +14,14 @@
   become_user: postgres
   become_method: sudo
 
+- name: upgrade pip package
+  pip: name=pip version=9.0.1 virtualenv={{ sentry_root }}/env.d/
+  become: yes
+  become_user: sentry
+  become_method: sudo
+
 - name: install sentry package
-  pip: name=sentry version=8.2.3 virtualenv={{ sentry_root }}/env.d/
+  pip: name=sentry version=8.12.0 virtualenv={{ sentry_root }}/env.d/
   become: yes
   become_user: sentry
   become_method: sudo
@@ -49,7 +55,13 @@
   with_items: "{{ sentry_services }}"
   notify:
     - restart sentry
-    - check that sentry is up
+
+- name: stop retired services
+  service: name={{ item }} state=stopped
+  with_items: "{{ sentry_retired_services }}"
+  ignore_errors: yes
+  notify:
+    - remove retired upstart configuration
 
 - name: install sentry vhost
   template: src=sentry.vhost.j2 dest=/etc/nginx/vhosts/sentry
